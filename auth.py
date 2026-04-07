@@ -68,5 +68,9 @@ def init_default_users():
     users = _load_users()
     if "admin" not in users:
         add_user("admin", "admin123", "admin", "Administrador")
+    if "yanira" not in users:
+        add_user("yanira", "pascualateamo", "editor", "Yanira")
+    if "pascuala" not in users:
+        add_user("pascuala", "papitoteamo", "editor", "Pascuala")
 
 init_default_users()
