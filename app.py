@@ -188,10 +188,11 @@ def show_schedule(nivel):
     asignaturas = get_asignaturas(nivel)
     schedule = get_schedule(nivel)
     user = st.session_state.user
+
+    horas = ["08:00", "08:45", "09:45", "10:30", "11:30", "12:15", "13:00", "14:30", "15:15"]
+
     if user["role"] in ["admin", "editor"]:
         st.subheader("✏️ Editar Horario")
-        horas = ["08:00", "09:00", "10:00", "11:00", "12:00",
-                 "13:00", "14:00", "15:00", "16:00"]
         nuevo_horario = {}
         for dia in DIAS:
             st.markdown(f"**{dia}**")
@@ -211,15 +212,16 @@ def show_schedule(nivel):
             st.success("Horario guardado!")
             st.rerun()
         st.divider()
+
     st.subheader("📅 Horario de clases")
     if not schedule:
         st.info("No hay horario cargado aún")
         return
-    horas = ["08:00", "09:00", "10:00", "11:00", "12:00",
-             "13:00", "14:00", "15:00", "16:00"]
+
     tabla = {}
     for dia in DIAS:
         tabla[dia] = [schedule.get(dia, {}).get(hora, "—") for hora in horas]
+
     df = pd.DataFrame(tabla, index=horas)
     st.dataframe(df, use_container_width=True)
 
