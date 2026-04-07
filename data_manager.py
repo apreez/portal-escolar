@@ -23,6 +23,16 @@ def init_dirs():
         TESTS_FILE.write_text("[]")
     if not MATERIALS_FILE.exists():
         MATERIALS_FILE.write_text("[]")
+def init_dirs():
+    DATA_DIR.mkdir(exist_ok=True)
+    for nivel in NIVELES:
+        (UPLOADS_DIR / nivel).mkdir(parents=True, exist_ok=True)
+    if not TESTS_FILE.exists():
+        TESTS_FILE.write_text("[]")
+    if not MATERIALS_FILE.exists():
+        MATERIALS_FILE.write_text("[]")
+    if not SCHEDULE_FILE.exists():
+        load_default_schedule()
 
 # ── PRUEBAS ──────────────────────────────────────────
 def get_tests(nivel=None):
@@ -114,3 +124,62 @@ def save_schedule(nivel, schedule):
         data = json.loads(SCHEDULE_FILE.read_text())
     data[nivel] = schedule
     SCHEDULE_FILE.write_text(json.dumps(data, indent=2))
+
+def load_default_schedule():
+    schedule = {
+        "5to_basico": {
+            "Lunes": {
+                "08:00": "Tecnología",
+                "08:45": "Religión",
+                "09:45": "Idioma Extranjero Inglés",
+                "10:30": "Idioma Extranjero Inglés",
+                "11:30": "Lenguaje y Comunicación",
+                "12:15": "Lenguaje y Comunicación",
+                "13:00": "Idioma Extranjero Inglés",
+                "14:30": "Música"
+            },
+            "Martes": {
+                "08:00": "Idioma Extranjero Inglés",
+                "08:45": "Idioma Extranjero Inglés",
+                "09:45": "Historia Geografía y Ciencias Sociales",
+                "10:30": "Historia Geografía y Ciencias Sociales",
+                "11:30": "Matemática",
+                "12:15": "Matemática",
+                "13:00": "Lenguaje y Comunicación",
+                "14:30": "Lenguaje y Comunicación"
+            },
+            "Miércoles": {
+                "08:00": "Ciencias Naturales",
+                "08:45": "Ciencias Naturales",
+                "09:45": "Historia Geografía y Ciencias Sociales",
+                "10:30": "Historia Geografía y Ciencias Sociales",
+                "11:30": "Matemática",
+                "12:15": "Matemática",
+                "13:00": "Ciencias Naturales",
+                "14:30": "Lenguaje y Comunicación",
+                "15:15": "Lenguaje y Comunicación"
+            },
+            "Jueves": {
+                "08:00": "Educación Física y Salud",
+                "08:45": "Educación Física y Salud",
+                "09:45": "Idioma Extranjero Inglés",
+                "10:30": "Idioma Extranjero Inglés",
+                "11:30": "Artes Visuales",
+                "12:15": "Artes Visuales",
+                "13:00": "Matemática",
+                "14:30": "Matemática"
+            },
+            "Viernes": {
+                "08:00": "Educación Física y Salud",
+                "08:45": "Educación Física y Salud",
+                "09:45": "Ciencias Naturales",
+                "10:30": "Ciencias Naturales",
+                "11:30": "Matemática",
+                "12:15": "Música",
+                "13:00": "Orientación Básica",
+                "14:30": ""
+            }
+        }
+    }
+    save_schedule("5to_basico", schedule["5to_basico"])
+    print("✅ Horario de 5° Básico cargado!")
