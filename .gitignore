@@ -4,3 +4,4 @@ uploads/
 users.json
 data/
 .streamlit/
+.env

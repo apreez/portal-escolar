@@ -1,35 +1,116 @@
-import json
-from pathlib import Path
+import os
 from datetime import datetime, date
+from dotenv import load_dotenv
+from supabase import create_client
 
-# Carpetas y archivos
-DATA_DIR = Path("data")
-UPLOADS_DIR = Path("uploads")
-TESTS_FILE = DATA_DIR / "tests.json"
-MATERIALS_FILE = DATA_DIR / "materials.json"
-SCHEDULE_FILE = DATA_DIR / "schedule.json"
+load_dotenv()
+
+# Conexión Supabase
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
-# Niveles del portal
 NIVELES = {
     "5to_basico": {"label": "5° Básico", "emoji": "📚", "color": "#6C63FF"},
     "kinder":     {"label": "Kinder",    "emoji": "🌟", "color": "#FF6B9D"},
 }
 
+# ── PRUEBAS ──────────────────────────────────────────
+def get_tests(nivel=None):
+    query = supabase.table("tests").select("*")
+    if nivel:
+        query = query.eq("nivel", nivel)
+    result = query.order("fecha").execute()
+    return result.data
+
+def add_test(nivel, asignatura, fecha, descripcion="", tipo="Prueba"):
+    supabase.table("tests").insert({
+        "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
+        "nivel": nivel,
+        "asignatura": asignatura,
+        "fecha": fecha,
+        "descripcion": descripcion,
+        "tipo": tipo
+    }).execute()
+
+def delete_test(test_id):
+    supabase.table("tests").delete().eq("id", test_id).execute()
+
+def get_upcoming_tests(days=30):
+    today = date.today()
+    result = []
+    for t in get_tests():
+        test_date = datetime.strptime(t["fecha"], "%Y-%m-%d").date()
+        delta = (test_date - today).days
+        if 0 <= delta <= days:
+            t["days_remaining"] = delta
+            result.append(t)
+    return sorted(result, key=lambda x: x["fecha"])
+
+# ── MATERIALES ───────────────────────────────────────
+def get_materials(nivel=None):
+    query = supabase.table("materials").select("*")
+    if nivel:
+        query = query.eq("nivel", nivel)
+    result = query.order("uploaded", desc=True).execute()
+    return result.data
+
+def add_material(nivel, asignatura, titulo, filename, filepath, descripcion=""):
+    supabase.table("materials").insert({
+        "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
+        "nivel": nivel,
+        "asignatura": asignatura,
+        "titulo": titulo,
+        "filename": filename,
+        "filepath": filepath,
+        "descripcion": descripcion,
+        "uploaded": datetime.now().isoformat()
+    }).execute()
+
+def delete_material(material_id):
+    supabase.table("materials").delete().eq("id", material_id).execute()
+
+def save_file(nivel, file_obj, filename):
+    from pathlib import Path
+    path = Path("uploads") / nivel / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(file_obj.getbuffer())
+    return str(path)
+
+def get_asignaturas(nivel):
+    return {
+        "5to_basico": ["Matemáticas","Lenguaje","Ciencias","Historia","Inglés","Arte","Ed. Física","Otro"],
+        "kinder":     ["Matemáticas","Lenguaje","Ciencias","Arte","Ed. Física","Otro"]
+    }.get(nivel, ["Otro"])
+
 # ── HORARIO ──────────────────────────────────────────
 def get_schedule(nivel):
-    if not SCHEDULE_FILE.exists():
-        return {}
-    data = json.loads(SCHEDULE_FILE.read_text())
-    return data.get(nivel, {})
+    result = supabase.table("schedule").select("*").eq("nivel", nivel).execute()
+    schedule = {}
+    for row in result.data:
+        dia = row["dia"]
+        hora = row["hora"]
+        if dia not in schedule:
+            schedule[dia] = {}
+        schedule[dia][hora] = row["asignatura"]
+    return schedule
 
 def save_schedule(nivel, schedule):
-    data = {}
-    if SCHEDULE_FILE.exists():
-        data = json.loads(SCHEDULE_FILE.read_text())
-    data[nivel] = schedule
-    SCHEDULE_FILE.write_text(json.dumps(data, indent=2))
+    supabase.table("schedule").delete().eq("nivel", nivel).execute()
+    rows = []
+    for dia, horas in schedule.items():
+        for hora, asignatura in horas.items():
+            if asignatura:
+                rows.append({
+                    "nivel": nivel,
+                    "dia": dia,
+                    "hora": hora,
+                    "asignatura": asignatura
+                })
+    if rows:
+        supabase.table("schedule").insert(rows).execute()
 
 def load_default_schedule():
     schedule = {
@@ -87,88 +168,7 @@ def load_default_schedule():
     }
     save_schedule("5to_basico", schedule)
 
-# ── INICIALIZACIÓN ────────────────────────────────────
-def init_dirs():
-    DATA_DIR.mkdir(exist_ok=True)
-    for nivel in NIVELES:
-        (UPLOADS_DIR / nivel).mkdir(parents=True, exist_ok=True)
-    if not TESTS_FILE.exists():
-        TESTS_FILE.write_text("[]")
-    if not MATERIALS_FILE.exists():
-        MATERIALS_FILE.write_text("[]")
-    if not SCHEDULE_FILE.exists():
-        load_default_schedule()
-
-# ── PRUEBAS ──────────────────────────────────────────
-def get_tests(nivel=None):
-    tests = json.loads(TESTS_FILE.read_text())
-    if nivel:
-        tests = [t for t in tests if t["nivel"] == nivel]
-    return sorted(tests, key=lambda x: x["fecha"])
-
-def add_test(nivel, asignatura, fecha, descripcion="", tipo="Prueba"):
-    tests = json.loads(TESTS_FILE.read_text())
-    tests.append({
-        "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
-        "nivel": nivel,
-        "asignatura": asignatura,
-        "fecha": fecha,
-        "descripcion": descripcion,
-        "tipo": tipo
-    })
-    TESTS_FILE.write_text(json.dumps(tests, indent=2))
-
-def delete_test(test_id):
-    tests = json.loads(TESTS_FILE.read_text())
-    tests = [t for t in tests if t["id"] != test_id]
-    TESTS_FILE.write_text(json.dumps(tests, indent=2))
-
-def get_upcoming_tests(days=30):
-    today = date.today()
-    result = []
-    for t in get_tests():
-        test_date = datetime.strptime(t["fecha"], "%Y-%m-%d").date()
-        delta = (test_date - today).days
-        if 0 <= delta <= days:
-            t["days_remaining"] = delta
-            result.append(t)
-    return sorted(result, key=lambda x: x["fecha"])
-
-# ── MATERIALES ───────────────────────────────────────
-def get_materials(nivel=None):
-    materials = json.loads(MATERIALS_FILE.read_text())
-    if nivel:
-        materials = [m for m in materials if m["nivel"] == nivel]
-    return sorted(materials, key=lambda x: x["uploaded"], reverse=True)
-
-def add_material(nivel, asignatura, titulo, filename, filepath, descripcion=""):
-    materials = json.loads(MATERIALS_FILE.read_text())
-    materials.append({
-        "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
-        "nivel": nivel,
-        "asignatura": asignatura,
-        "titulo": titulo,
-        "filename": filename,
-        "filepath": filepath,
-        "descripcion": descripcion,
-        "uploaded": datetime.now().isoformat()
-    })
-    MATERIALS_FILE.write_text(json.dumps(materials, indent=2))
-
-def delete_material(material_id):
-    materials = json.loads(MATERIALS_FILE.read_text())
-    materials = [m for m in materials if m["id"] != material_id]
-    MATERIALS_FILE.write_text(json.dumps(materials, indent=2))
-
-def save_file(nivel, file_obj, filename):
-    path = UPLOADS_DIR / nivel / filename
-    path.write_bytes(file_obj.getbuffer())
-    return str(path)
-
-def get_asignaturas(nivel):
-    return {
-        "5to_basico": ["Matemáticas","Lenguaje","Ciencias","Historia","Inglés","Arte","Ed. Física","Otro"],
-        "kinder":     ["Matemáticas","Lenguaje","Ciencias","Arte","Ed. Física","Otro"]
-    }.get(nivel, ["Otro"])
-
-init_dirs()
+# Cargar horario por defecto si no existe
+existing = get_schedule("5to_basico")
+if not existing:
+    load_default_schedule()

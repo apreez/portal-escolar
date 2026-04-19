@@ -4,5 +4,17 @@
     "role": "admin",
     "name": "Administrador",
     "created": "2026-04-07T09:31:22.031793"
+  },
+  "yanira": {
+    "password": "$2b$12$u7MdA.3wMeHxlf6yZqIg6ukIVQq6j5FMkCRXfpV98K.Ew.JxIe2Fe",
+    "role": "editor",
+    "name": "Yanira",
+    "created": "2026-04-19T17:03:44.641707"
+  },
+  "pascuala": {
+    "password": "$2b$12$7cVkRugyzqwZh3QcTuEoee/AAwI1re.XExus3P0eMSbfi5tJvrTJa",
+    "role": "editor",
+    "name": "Pascuala",
+    "created": "2026-04-19T17:03:45.079927"
   }
 }

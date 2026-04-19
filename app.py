@@ -7,7 +7,7 @@ from data_manager import (
     NIVELES, DIAS, get_tests, get_upcoming_tests,
     get_materials, add_test, delete_test,
     add_material, delete_material,
-    save_file, get_asignaturas, init_dirs,
+    save_file, get_asignaturas,
     get_schedule, save_schedule
 )
 
