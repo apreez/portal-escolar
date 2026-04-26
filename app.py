@@ -1,5 +1,4 @@
 import streamlit as st
-from pathlib import Path
 from datetime import datetime, date
 import pandas as pd
 from auth import verify_login, add_user, list_users
@@ -11,14 +10,12 @@ from data_manager import (
     get_schedule, save_schedule
 )
 
-# Configuración de la página
 st.set_page_config(
     page_title="Portal Quinto Básico Pascuala",
     page_icon="🏫",
     layout="wide"
 )
 
-# Estado de sesión
 if "user" not in st.session_state:
     st.session_state.user = None
 
@@ -132,21 +129,13 @@ def show_materials(nivel):
         st.info("No hay materiales subidos aún")
         return
     for m in materials:
-        fp = Path(m["filepath"])
         col1, col2, col3 = st.columns([5, 1, 1])
         with col1:
             st.write(f"📄 **{m['titulo']}** — {m['asignatura']}")
             if m.get("descripcion"):
                 st.caption(m["descripcion"])
         with col2:
-            if fp.exists():
-                with open(fp, "rb") as f:
-                    st.download_button(
-                        "⬇️",
-                        data=f.read(),
-                        file_name=m["filename"],
-                        key=f"dl_{m['id']}"
-                    )
+            st.markdown(f"[⬇️ Descargar]({m['filepath']})")
         with col3:
             user = st.session_state.user
             if user["role"] in ["admin", "editor"]:
@@ -188,9 +177,7 @@ def show_schedule(nivel):
     asignaturas = get_asignaturas(nivel)
     schedule = get_schedule(nivel)
     user = st.session_state.user
-
     horas = ["08:00", "08:45", "09:45", "10:30", "11:30", "12:15", "13:00", "14:30", "15:15"]
-
     if user["role"] in ["admin", "editor"]:
         st.subheader("✏️ Editar Horario")
         nuevo_horario = {}
@@ -212,16 +199,13 @@ def show_schedule(nivel):
             st.success("Horario guardado!")
             st.rerun()
         st.divider()
-
     st.subheader("📅 Horario de clases")
     if not schedule:
         st.info("No hay horario cargado aún")
         return
-
     tabla = {}
     for dia in DIAS:
         tabla[dia] = [schedule.get(dia, {}).get(hora, "—") for hora in horas]
-
     df = pd.DataFrame(tabla, index=horas)
     st.dataframe(df, use_container_width=True)
 
