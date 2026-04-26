@@ -76,11 +76,15 @@ def save_file(nivel, file_obj, filename):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
     final_name = timestamp + filename.replace(" ", "_")
     path = f"{nivel}/{final_name}"
+    
+    data = file_obj.getvalue()
+    
     supabase.storage.from_("materiales").upload(
-        path,
-        file_obj.getbuffer().tobytes(),
-        {"content-type": "application/octet-stream"}
+        file=data,
+        path=path,
+        file_options={"content-type": "application/octet-stream"}
     )
+    
     url = supabase.storage.from_("materiales").get_public_url(path)
     return url
 
