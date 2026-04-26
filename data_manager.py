@@ -73,11 +73,16 @@ def delete_material(material_id):
     supabase.table("materials").delete().eq("id", material_id).execute()
 
 def save_file(nivel, file_obj, filename):
-    from pathlib import Path
-    path = Path("uploads") / nivel / filename
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(file_obj.getbuffer())
-    return str(path)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
+    final_name = timestamp + filename.replace(" ", "_")
+    path = f"{nivel}/{final_name}"
+    supabase.storage.from_("materiales").upload(
+        path,
+        file_obj.getbuffer().tobytes(),
+        {"content-type": "application/octet-stream"}
+    )
+    url = supabase.storage.from_("materiales").get_public_url(path)
+    return url
 
 def get_asignaturas(nivel):
     return {
